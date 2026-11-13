@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>声音工作台 · Qwen Voice Clone</title>
+  <link rel="stylesheet" href="/assets/studio.css">
+  <script src="/assets/studio.js" defer></script>
+</head>
+<body>
+  <main class="studio">
+    <header class="masthead">
+      <div>
+        <p class="brand">Qwen Voice Clone</p>
+        <h1>声音工作台</h1>
+        <p class="intro">从一段参考录音生成音色模板，再用它为新文案配音。</p>
+      </div>
+      <span class="local"><i></i> 本机运行</span>
+    </header>
+
+    <div class="workspace">
+      <section class="panel template-panel" aria-labelledby="template-title">
+        <h2 id="template-title">生成音色模板</h2>
+        <form id="template-form" action="/api/templates" method="post" enctype="multipart/form-data">
+          <label class="field">模板名称
+            <input name="name" placeholder="例如：我的旁白" required maxlength="50">
+          </label>
+          <label class="field file-field">参考音频
+            <input name="reference" type="file" required accept=".wav,.flac,.mp3,.ogg">
+            <span class="hint">WAV、FLAC、MP3 或 OGG。请选择清楚的单人录音。</span>
+          </label>
+          <label class="field">参考音频的逐字稿
+            <textarea name="transcript" rows="5" maxlength="2000" required placeholder="填入参考录音里实际说出的内容"></textarea>
+          </label>
+          <button type="submit">生成模板</button>
+          <p class="status" role="status"></p>
+        </form>
+      </section>
+
+      <section class="panel speech-panel" aria-labelledby="speech-title">
+        <h2 id="speech-title">用模板配音</h2>
+        <form id="speech-form" action="/api/speech" method="post">
+          <div class="settings">
+            <label class="field">音色模板
+              <select name="template" required><option value="">正在读取模板…</option></select>
+            </label>
+            <label class="field">语言
+              <select name="language">
+                <option value="Chinese">中文</option>
+                <option value="English">英语</option>
+                <option value="Auto">自动</option>
+              </select>
+            </label>
+          </div>
+          <label class="field">配音文案
+            <textarea name="script" rows="7" maxlength="10000" required placeholder="输入要朗读的内容。用空行分段。"></textarea>
+          </label>
+          <button type="submit" disabled>生成配音</button>
+          <p class="status" role="status"></p>
+        </form>
+
+        <div class="playback" id="playback" hidden>
+          <h3>配音试听</h3>
+          <audio controls preload="metadata" aria-label="配音试听"></audio>
+          <a class="download" download="配音.wav">下载 WAV</a>
+        </div>
+      </section>
+    </div>
+  </main>
+</body>
+</html>
