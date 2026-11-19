@@ -23,6 +23,16 @@ python -m venv .venv
 
 已有模型时可用 `web_app.py --model "本地模型目录" --offline` 启动。服务监听本机回环地址，按 Ctrl+C 停止。生成的模板保存在 `work/web/templates/`。把已有的兼容 `.pt` 文件复制到该目录并刷新网页即可复用，文件名会显示在下拉列表。生成的 WAV 保存在 `work/web/audio/`，参考音频和填写的文字只在生成过程中临时使用。
 
+## 用 AI 助手配音
+
+[Qwen Voice Clone Skill](skills/qwen-voice-clone/SKILL.md) 提供建模板、换音色和输出 WAV 的工作流程。支持 Agent Skills 的客户端可导入 `skills/qwen-voice-clone` 文件夹。也可以让能访问本机文件和终端的 AI 助手直接读取 `SKILL.md`，再按其中的步骤运行项目。
+
+把下面这段交给 AI，再提供对应的本机文件。
+
+> 用 Qwen Voice Clone 给这段新文案配音。我提供已获授权的参考录音和准确逐字稿。请先建立音色模板，再输出 WAV，给我保存路径。
+
+已有可信的音色模板时，直接把模板和新文案交给 AI 即可。
+
 ## 命令行
 
 ## 1. 生成音色模板
