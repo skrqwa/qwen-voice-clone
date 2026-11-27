@@ -20,7 +20,7 @@ AUDIO_EXTENSIONS = {".wav", ".flac", ".mp3", ".ogg"}
 MAX_REQUEST_BYTES = 25 * 1024 * 1024
 
 
-def create_app(model=DEFAULT_MODEL, offline=False, threads=8, data_dir=ROOT / "work" / "web"):
+def create_app(model=DEFAULT_MODEL, offline=False, threads=8, device="auto", data_dir=ROOT / "work" / "web"):
     app = Flask(__name__, static_folder="web", static_url_path="/assets")
     app.config.update(MAX_CONTENT_LENGTH=MAX_REQUEST_BYTES, TRUSTED_HOSTS=["127.0.0.1", "localhost"])
     templates = data_dir / "templates"
@@ -28,7 +28,7 @@ def create_app(model=DEFAULT_MODEL, offline=False, threads=8, data_dir=ROOT / "w
     templates.mkdir(parents=True, exist_ok=True)
     outputs.mkdir(parents=True, exist_ok=True)
     busy = Lock()
-    model_args = ["--model", model, "--threads", str(threads)]
+    model_args = ["--model", model, "--threads", str(threads), "--device", device]
     if offline:
         model_args.append("--offline")
 
@@ -149,11 +149,12 @@ def main():
     parser.add_argument("--model", default=DEFAULT_MODEL)
     parser.add_argument("--offline", action="store_true")
     parser.add_argument("--threads", type=int, default=8)
+    parser.add_argument("--device", choices=("auto", "cuda", "cpu"), default="auto")
     parser.add_argument("--port", type=int, default=7860)
     args = parser.parse_args()
     if args.threads < 1 or not 1 <= args.port <= 65535:
         parser.error("线程数须为正整数，端口范围为 1–65535")
-    create_app(args.model, args.offline, args.threads).run(
+    create_app(args.model, args.offline, args.threads, args.device).run(
         host="127.0.0.1", port=args.port, debug=False, use_reloader=False
     )
 

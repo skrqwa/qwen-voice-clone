@@ -23,7 +23,7 @@ description: Clone an authorized voice locally from a reference recording and it
    python voice_clone.py speak --template "work/voice.pt" --text "work/script.txt" --output "work/narration.wav"
    ```
 
-   `voice_clone.py` 默认在 CPU 运行，首次使用会下载模型。用户已有模型和语音 tokenizer 并需要离线时，在对应子命令末尾加 `--model "本地模型目录" --offline`。切换音色时更换 `--template`，改稿时更换 `--text`，各自使用新的输出路径。
+   `voice_clone.py` 默认使用 `--device auto`（检测到可用 CUDA GPU 时自动走 GPU 加速，否则平滑回退 CPU，也可显式传 `--device cuda` 或 `--device cpu`），首次使用会下载模型。用户已有模型和语音 tokenizer 并需要离线时，在对应子命令末尾加 `--model "本地模型目录" --offline`。切换音色时更换 `--template`，改稿时更换 `--text`，各自使用新的输出路径。
 3. 核对命令退出状态和实际输出文件。生成 WAV 后检查可读、时长大于零并且有音频信号。向用户给出实际输出路径和时长，按实际情况说明是否试听过。
 
 用户希望在浏览器完成操作时，在仓库根目录运行 `python web_app.py`，按终端显示的本机地址打开声音工作台。可用 `--port` 指定端口。左侧建模板，右侧选模板、填稿、试听并下载。用户只需配音文件时，直接使用命令行。

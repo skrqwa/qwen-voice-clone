@@ -41,6 +41,38 @@ def create_template(args, model, torch, reference, transcript):
     write_new(args.output, lambda path: torch.save([payload], path))
 
 
+def resolve_runtime(torch, requested):
+    if requested not in {"auto", "cuda", "cpu"}:
+        raise ValueError(f"不支持的运行设备：{requested}")
+    if requested == "cuda":
+        if not torch.cuda.is_available():
+            raise RuntimeError("已指定 --device cuda，但当前环境未检测到可用 CUDA GPU。")
+        use_cuda = True
+    elif requested == "auto":
+        use_cuda = bool(torch.cuda.is_available())
+    else:
+        use_cuda = False
+    if use_cuda:
+        dtype = torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16
+        return "cuda:0", dtype, "sdpa"
+    return "cpu", torch.float32, "eager"
+
+
+def load_tts_model(Qwen3TTSModel, torch, model_path, offline, device_map, dtype, attn_impl):
+    try:
+        return Qwen3TTSModel.from_pretrained(
+            model_path, device_map=device_map, dtype=dtype,
+            attn_implementation=attn_impl, local_files_only=offline,
+        )
+    except Exception:
+        if attn_impl != "eager":
+            return Qwen3TTSModel.from_pretrained(
+                model_path, device_map=device_map, dtype=dtype,
+                attn_implementation="eager", local_files_only=offline,
+            )
+        raise
+
+
 def synthesize(args, model, torch, paragraphs, prompt):
     import numpy as np
     import soundfile as sf
@@ -52,6 +84,8 @@ def synthesize(args, model, torch, paragraphs, prompt):
             output = None
             for index, text in enumerate(paragraphs, start=1):
                 torch.manual_seed(args.seed)
+                if torch.cuda.is_available():
+                    torch.cuda.manual_seed_all(args.seed)
                 waves, rate = model.generate_voice_clone(
                     text=text,
                     language=args.language,
@@ -88,6 +122,7 @@ def parse_args():
     common.add_argument("--model", default=DEFAULT_MODEL, help="Qwen3-TTS Base 模型目录或 Hugging Face ID")
     common.add_argument("--offline", action="store_true", help="仅使用本地模型文件或已有缓存")
     common.add_argument("--threads", type=int, default=8, help="CPU 推理线程数")
+    common.add_argument("--device", choices=("auto", "cuda", "cpu"), default="auto", help="推理设备：auto 自动优先 CUDA GPU，无 GPU 自动回退 CPU")
     common.add_argument("--seed", type=int, default=23)
     commands = parser.add_subparsers(dest="command", required=True)
 
@@ -142,12 +177,16 @@ def main():
                 raise ValueError("需要包含单个说话人的音色模板")
             prompt = [VoiceClonePromptItem(**payload[0])]
 
-        torch.set_num_threads(args.threads)
+        device_map, dtype, attn_impl = resolve_runtime(torch, args.device)
+        if device_map == "cpu":
+            torch.set_num_threads(args.threads)
         torch.manual_seed(args.seed)
-        model = Qwen3TTSModel.from_pretrained(
-            args.model, device_map="cpu", dtype=torch.float32,
-            attn_implementation="eager", local_files_only=args.offline,
-        )
+        if device_map.startswith("cuda"):
+            torch.cuda.manual_seed_all(args.seed)
+            print(f"推理设备：{device_map} ({torch.cuda.get_device_name(0)}, {dtype})", flush=True)
+        else:
+            print(f"推理设备：cpu ({args.threads} threads, {dtype})", flush=True)
+        model = load_tts_model(Qwen3TTSModel, torch, args.model, args.offline, device_map, dtype, attn_impl)
         if args.command == "template":
             create_template(args, model, torch, (wave, rate), transcript)
         else:
